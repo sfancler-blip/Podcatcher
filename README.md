@@ -12,6 +12,16 @@
     Pocket Casts is the world's most powerful podcast platform, an app by listeners, for listeners.
 </p>
 
+---
+
+> ### 🔧 Podcatcher — a personal fork
+>
+> This repository (`sfancler-blip/Podcatcher`) is a **personal fork of [Automattic/pocket-casts-android](https://github.com/Automattic/pocket-casts-android)**, used to add custom features. It is **not affiliated with or endorsed by Automattic**, and "Pocket Casts" is a trademark of Automattic — this fork is for private customization only.
+>
+> The original code remains under the **Mozilla Public License 2.0** (see [`LICENSE.md`](LICENSE.md)); modifications to MPL-covered files stay MPL-2.0. Planned customizations and their design are documented in [`docs/CUSTOMIZATION-PLAN.md`](docs/CUSTOMIZATION-PLAN.md).
+
+---
+
 ## Install
 
 If you're just looking to install Pocket Casts Android, you can find it on [Google Play](https://play.google.com/store/apps/details?id=au.com.shiftyjelly.pocketcasts). If you're a developer wanting to contribute, read on.
