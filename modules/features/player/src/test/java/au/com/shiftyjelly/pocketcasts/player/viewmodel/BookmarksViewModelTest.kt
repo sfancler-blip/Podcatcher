@@ -7,6 +7,7 @@ import au.com.shiftyjelly.pocketcasts.analytics.SourceView
 import au.com.shiftyjelly.pocketcasts.analytics.testing.TestEventSink
 import au.com.shiftyjelly.pocketcasts.models.entity.Bookmark
 import au.com.shiftyjelly.pocketcasts.models.entity.UserEpisode
+import au.com.shiftyjelly.pocketcasts.models.to.Chapters
 import au.com.shiftyjelly.pocketcasts.models.type.Subscription
 import au.com.shiftyjelly.pocketcasts.models.type.SubscriptionPlatform
 import au.com.shiftyjelly.pocketcasts.payment.BillingCycle
@@ -19,6 +20,7 @@ import au.com.shiftyjelly.pocketcasts.preferences.model.BookmarksSortTypeDefault
 import au.com.shiftyjelly.pocketcasts.preferences.model.BookmarksSortTypeForProfile
 import au.com.shiftyjelly.pocketcasts.repositories.bookmark.BookmarkManager
 import au.com.shiftyjelly.pocketcasts.repositories.playback.PlaybackManager
+import au.com.shiftyjelly.pocketcasts.repositories.podcast.ChapterManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.EpisodeManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.PodcastManager
 import au.com.shiftyjelly.pocketcasts.sharedtest.InMemoryFeatureFlagRule
@@ -70,6 +72,9 @@ class BookmarksViewModelTest {
     private lateinit var episodeManager: EpisodeManager
 
     @Mock
+    private lateinit var chapterManager: ChapterManager
+
+    @Mock
     private lateinit var podcastManager: PodcastManager
 
     @Mock
@@ -114,6 +119,7 @@ class BookmarksViewModelTest {
         }
         whenever(settings.profileBookmarksSortType).thenReturn(profileBookmarksSortType)
         whenever(episodeManager.findEpisodesByUuids(any())).thenReturn(emptyList())
+        whenever(chapterManager.observerChaptersForEpisode(any())).thenReturn(flowOf(Chapters()))
         whenever(multiSelectHelper.isMultiSelectingLive)
             .thenReturn(MutableLiveData<Boolean>().apply { value = false })
         whenever(multiSelectHelper.selectedListLive)
@@ -127,6 +133,7 @@ class BookmarksViewModelTest {
             eventHorizon = EventHorizon(TestEventSink()),
             bookmarkManager = bookmarkManager,
             episodeManager = episodeManager,
+            chapterManager = chapterManager,
             podcastManager = podcastManager,
             multiSelectHelper = multiSelectHelper,
             settings = settings,
