@@ -10,5 +10,4 @@ import kotlin.time.Duration.Companion.seconds
  * Returns null when the episode has no chapters (null receiver or empty [Chapters]) or when the
  * bookmark falls outside every chapter, so callers can simply hide the label in those cases.
  */
-internal fun Chapters?.chapterTitleForBookmark(bookmark: Bookmark): String? =
-    this?.getChapter(bookmark.timeSecs.seconds)?.title
+internal fun Chapters?.chapterTitleForBookmark(bookmark: Bookmark): String? = this?.getChapter(bookmark.timeSecs.seconds)?.title
