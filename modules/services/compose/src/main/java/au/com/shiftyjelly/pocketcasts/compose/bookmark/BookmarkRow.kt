@@ -79,6 +79,7 @@ fun BookmarkRow(
     useEpisodeArtwork: Boolean,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
+    chapterTitle: String? = null,
     colors: BookmarkColors = rememberBookmarkColors(),
 ) {
     Column(
@@ -163,6 +164,15 @@ fun BookmarkRow(
                     maxLines = 1,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+
+                if (!chapterTitle.isNullOrEmpty()) {
+                    TextH70(
+                        text = chapterTitle,
+                        color = colors.bookmarkRow.secondaryText,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
 
                 Spacer(
                     modifier = Modifier.padding(

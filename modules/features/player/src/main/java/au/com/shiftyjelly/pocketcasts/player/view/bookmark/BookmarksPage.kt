@@ -276,6 +276,7 @@ private fun BookmarksView(
                 showIcon = state.showIcon,
                 useEpisodeArtwork = state.useEpisodeArtwork,
                 showEpisodeTitle = state.showEpisodeTitle,
+                chapterTitle = state.bookmarkIdAndChapterTitleMap[bookmark.uuid],
                 colors = colors,
                 onPlayClick = { onPlayClick(bookmark) },
                 modifier = Modifier.pointerInput(bookmark.adapterId) {

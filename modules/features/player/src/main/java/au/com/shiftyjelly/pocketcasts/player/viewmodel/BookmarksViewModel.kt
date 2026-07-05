@@ -25,6 +25,7 @@ import au.com.shiftyjelly.pocketcasts.preferences.model.BookmarksSortTypeForProf
 import au.com.shiftyjelly.pocketcasts.repositories.bookmark.BookmarkManager
 import au.com.shiftyjelly.pocketcasts.repositories.di.IoDispatcher
 import au.com.shiftyjelly.pocketcasts.repositories.playback.PlaybackManager
+import au.com.shiftyjelly.pocketcasts.repositories.podcast.ChapterManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.EpisodeManager
 import au.com.shiftyjelly.pocketcasts.repositories.podcast.PodcastManager
 import au.com.shiftyjelly.pocketcasts.utils.featureflag.Feature
@@ -49,11 +50,15 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+private const val CHAPTER_LOOKUP_TIMEOUT_MS = 1_000L
 
 @HiltViewModel
 class BookmarksViewModel
@@ -61,6 +66,7 @@ class BookmarksViewModel
     private val eventHorizon: EventHorizon,
     private val bookmarkManager: BookmarkManager,
     private val episodeManager: EpisodeManager,
+    private val chapterManager: ChapterManager,
     private val podcastManager: PodcastManager,
     val multiSelectHelper: MultiSelectBookmarksHelper,
     private val settings: Settings,
@@ -194,9 +200,20 @@ class BookmarksViewModel
                 val bookmarkIdAndEpisodeMap = filteredBookmarks.associate { bookmark ->
                     bookmark.uuid to episodes.firstOrNull { it.uuid == bookmark.episodeUuid }
                 }
+                // Resolve the chapter each bookmark sits in for the single loaded episode (player /
+                // episode views). Bounded to one lookup and time-boxed so it never blocks the list.
+                val chapters = episode?.let {
+                    withTimeoutOrNull(CHAPTER_LOOKUP_TIMEOUT_MS) {
+                        chapterManager.observerChaptersForEpisode(it.uuid).firstOrNull()
+                    }
+                }
+                val bookmarkIdAndChapterTitleMap = filteredBookmarks.associate { bookmark ->
+                    bookmark.uuid to chapters.chapterTitleForBookmark(bookmark)
+                }
                 UiState.Loaded(
                     bookmarks = filteredBookmarks,
                     bookmarkIdAndEpisodeMap = bookmarkIdAndEpisodeMap,
+                    bookmarkIdAndChapterTitleMap = bookmarkIdAndChapterTitleMap,
                     isMultiSelecting = isMultiSelecting,
                     useEpisodeArtwork = artworkConfiguration.useEpisodeArtwork(Element.Bookmarks),
                     isSelected = { selectedBookmark ->
@@ -398,6 +415,7 @@ class BookmarksViewModel
         data class Loaded(
             val bookmarks: List<Bookmark> = emptyList(),
             val bookmarkIdAndEpisodeMap: Map<String, BaseEpisode?>,
+            val bookmarkIdAndChapterTitleMap: Map<String, String?> = emptyMap(),
             val isMultiSelecting: Boolean,
             val useEpisodeArtwork: Boolean,
             val isSelected: (Bookmark) -> Boolean,
