@@ -12,6 +12,13 @@ web sessions and **no realistic in-session emulator**. Verification therefore la
 ```
 Auto-fix formatting: `./gradlew spotlessApply`.
 
+> **CI note:** the CI workflow runs `spotlessCheck` + `:modules:services:model:testDebugUnitTest`.
+> Feature-module unit tests (e.g. `:modules:features:player`) transitively rebuild
+> `modules/services/crashlogging`, whose KSP/Dagger-generated Java compile is flaky in headless
+> CI (an upstream quirk, unrelated to this fork). Run feature-module unit tests from a full
+> local/Android Studio build. Pure feature logic is kept in `model` where it is CI-covered
+> (e.g. the chapter-bookmark resolver lives in `model` and is tested there).
+
 ## Level 2 — Assemble (proves it builds; CI-preferred)
 ```bash
 ./gradlew :app:assembleDebugProd     # debug APK vs production servers; no secrets needed

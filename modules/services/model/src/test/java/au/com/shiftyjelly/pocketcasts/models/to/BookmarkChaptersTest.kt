@@ -1,14 +1,12 @@
-package au.com.shiftyjelly.pocketcasts.player.viewmodel
+package au.com.shiftyjelly.pocketcasts.models.to
 
 import au.com.shiftyjelly.pocketcasts.models.entity.Bookmark
-import au.com.shiftyjelly.pocketcasts.models.to.Chapter
-import au.com.shiftyjelly.pocketcasts.models.to.Chapters
 import kotlin.time.Duration.Companion.seconds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-class BookmarkChapterResolverTest {
+class BookmarkChaptersTest {
     private val chapters = Chapters(
         listOf(
             Chapter(title = "Intro", startTime = 0.seconds, endTime = 60.seconds, index = 0, uiIndex = 0),
