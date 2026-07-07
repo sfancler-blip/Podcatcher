@@ -22,5 +22,4 @@ interface ClaudeManager {
     }
 }
 
-fun String.truncateForClaude(maxChars: Int = ClaudeManager.MAX_TRANSCRIPT_CHARS): String =
-    if (length <= maxChars) this else take(maxChars)
+fun String.truncateForClaude(maxChars: Int = ClaudeManager.MAX_TRANSCRIPT_CHARS): String = if (length <= maxChars) this else take(maxChars)

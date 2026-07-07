@@ -29,11 +29,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # .java-version pins JDK 21 (Kotlin still targets 17). Compiling with JDK 17 fails on
+      # dependencies built for 21 (e.g. crashlogging: "bad class file ... cannot access
+      # CrashLogging" while compiling its Dagger-generated Java).
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -54,6 +57,12 @@ jobs:
       # feature-module and repositories tests out of CI.
       - name: Unit tests (servers)
         run: ./gradlew :modules:services:servers:testDebugUnitTest --stacktrace
+
+      # Covers ClaudeManagerImpl, EpisodeSummaryManagerImpl, AdSkipManagerImpl, and
+      # ClaudeChatManager. Previously kept out of CI because the crashlogging module failed to
+      # compile — that was the JDK 17/21 mismatch fixed above.
+      - name: Unit tests (repositories)
+        run: ./gradlew :modules:services:repositories:testDebugUnitTest --stacktrace
 
       # Room writes the current schema JSON (e.g. 136.json) during KSP compilation and its
       # identityHash cannot be hand-authored. Web sessions have no Android SDK to generate it,
@@ -78,11 +87,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # .java-version pins JDK 21 (Kotlin still targets 17). Compiling with JDK 17 fails on
+      # dependencies built for 21 (e.g. crashlogging: "bad class file ... cannot access
+      # CrashLogging" while compiling its Dagger-generated Java).
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
