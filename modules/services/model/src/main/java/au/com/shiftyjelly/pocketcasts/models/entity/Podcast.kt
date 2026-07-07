@@ -103,6 +103,8 @@ data class Podcast(
     @ColumnInfo(name = "slug") var slug: String = "",
     @ColumnInfo(name = "explicit") var explicit: Boolean? = null,
     @ColumnInfo(name = "web_feed", defaultValue = "0") var webFeed: Boolean = false,
+    // Podcatcher fork: excludes this podcast from Claude ad skipping. Local only, not synced.
+    @ColumnInfo(name = "ad_skip_opt_out", defaultValue = "0") var adSkipOptOut: Boolean = false,
     @Embedded(prefix = "bundle") var singleBundle: Bundle? = null,
     @Ignore val episodes: MutableList<PodcastEpisode> = mutableListOf(),
 ) : Serializable {

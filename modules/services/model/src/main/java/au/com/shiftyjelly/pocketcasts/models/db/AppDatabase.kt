@@ -37,6 +37,7 @@ import au.com.shiftyjelly.pocketcasts.models.converter.SafeDateTypeConverter
 import au.com.shiftyjelly.pocketcasts.models.converter.SyncStatusConverter
 import au.com.shiftyjelly.pocketcasts.models.converter.TrimModeTypeConverter
 import au.com.shiftyjelly.pocketcasts.models.converter.UserEpisodeServerStatusConverter
+import au.com.shiftyjelly.pocketcasts.models.db.dao.AdSegmentDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.AlternateEnclosureDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.BlazeAdDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.BookmarkDao
@@ -45,6 +46,7 @@ import au.com.shiftyjelly.pocketcasts.models.db.dao.ChapterDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EndOfYearDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeChatDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeDao
+import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeSummaryDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.ExternalDataDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.FolderDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.PlaybackStatsDao
@@ -65,9 +67,12 @@ import au.com.shiftyjelly.pocketcasts.models.entity.BlazeAd
 import au.com.shiftyjelly.pocketcasts.models.entity.Bookmark
 import au.com.shiftyjelly.pocketcasts.models.entity.ChapterIndices
 import au.com.shiftyjelly.pocketcasts.models.entity.CuratedPodcast
+import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeAdAnalysis
+import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeAdSegment
 import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeAlternateEnclosure
 import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeChat
 import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeChatMessage
+import au.com.shiftyjelly.pocketcasts.models.entity.EpisodeSummary
 import au.com.shiftyjelly.pocketcasts.models.entity.Folder
 import au.com.shiftyjelly.pocketcasts.models.entity.ManualPlaylistEpisode
 import au.com.shiftyjelly.pocketcasts.models.entity.PlaybackStatsEvent
@@ -119,14 +124,20 @@ import au.com.shiftyjelly.pocketcasts.localization.R as LR
         EpisodeChat::class,
         EpisodeChatMessage::class,
         EpisodeAlternateEnclosure::class,
+        EpisodeSummary::class,
+        EpisodeAdSegment::class,
+        EpisodeAdAnalysis::class,
     ],
-    version = 135,
+    version = 136,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 81, to = 82, spec = AppDatabase.Companion.DeleteSilenceRemovedMigration::class),
         AutoMigration(from = 88, to = 89, spec = AppDatabase.Companion.DeleteAutomaticallyCachedMigration::class),
         AutoMigration(from = 102, to = 103, spec = AppDatabase.Companion.DeleteAutoDownloadLimitMigration::class),
         AutoMigration(from = 128, to = 129),
+        // Podcatcher fork: episode_summaries, episode_ad_segments, episode_ad_analysis tables
+        // and podcasts.ad_skip_opt_out column — all additive, so no spec is needed.
+        AutoMigration(from = 135, to = 136),
     ],
 )
 @TypeConverters(
@@ -178,6 +189,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun playbackStatsDao(): PlaybackStatsDao
     abstract fun episodeChatDao(): EpisodeChatDao
     abstract fun alternateEnclosureDao(): AlternateEnclosureDao
+    abstract fun episodeSummaryDao(): EpisodeSummaryDao
+    abstract fun adSegmentDao(): AdSegmentDao
 
     fun databaseFiles() = openHelper.readableDatabase.path?.let {
         listOf(

@@ -319,6 +319,12 @@ interface Settings {
     val prioritizeSeekAccuracy: UserSetting<Boolean>
     val cacheEntirePlayingEpisode: UserSetting<Boolean>
     val liveAnalyticsUrl: UserSetting<String>
+
+    // Podcatcher fork: Claude AI features. The key is entered in-app and stored encrypted in
+    // private prefs; transcripts are only ever sent to Anthropic when the user has opted in.
+    val anthropicApiKey: UserSetting<String>
+    val sendTranscriptsToAnthropic: UserSetting<Boolean>
+    val adSkipEnabled: UserSetting<Boolean>
     val collectListeningStats: ReadWriteSetting<Boolean>
 
     fun setSelectPodcastsSortType(sortType: PodcastsSortType)

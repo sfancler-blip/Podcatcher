@@ -12,6 +12,12 @@ import au.com.shiftyjelly.pocketcasts.preferences.Settings
 import au.com.shiftyjelly.pocketcasts.preferences.SettingsImpl
 import au.com.shiftyjelly.pocketcasts.repositories.ads.BlazeAdsManager
 import au.com.shiftyjelly.pocketcasts.repositories.ads.BlazeAdsManagerImpl
+import au.com.shiftyjelly.pocketcasts.repositories.ai.AdSkipManager
+import au.com.shiftyjelly.pocketcasts.repositories.ai.AdSkipManagerImpl
+import au.com.shiftyjelly.pocketcasts.repositories.ai.ClaudeManager
+import au.com.shiftyjelly.pocketcasts.repositories.ai.ClaudeManagerImpl
+import au.com.shiftyjelly.pocketcasts.repositories.ai.EpisodeSummaryManager
+import au.com.shiftyjelly.pocketcasts.repositories.ai.EpisodeSummaryManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.analytics.AnalyticsLiveDebugListener
 import au.com.shiftyjelly.pocketcasts.repositories.appreview.AppReviewAnalyticsListener
 import au.com.shiftyjelly.pocketcasts.repositories.appreview.AppReviewManager
@@ -19,7 +25,7 @@ import au.com.shiftyjelly.pocketcasts.repositories.appreview.AppReviewManagerImp
 import au.com.shiftyjelly.pocketcasts.repositories.bookmark.BookmarkManager
 import au.com.shiftyjelly.pocketcasts.repositories.bookmark.BookmarkManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.chat.ChatManager
-import au.com.shiftyjelly.pocketcasts.repositories.chat.ChatManagerImpl
+import au.com.shiftyjelly.pocketcasts.repositories.chat.DelegatingChatManager
 import au.com.shiftyjelly.pocketcasts.repositories.chromecast.CastManager
 import au.com.shiftyjelly.pocketcasts.repositories.chromecast.CastManagerImpl
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadManager
@@ -151,9 +157,23 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun providesBookmarkManager(bookmarkManager: BookmarkManagerImpl): BookmarkManager
 
+    // Podcatcher fork: delegates to the Claude backend when the user has configured a key,
+    // otherwise falls through to the upstream Pocket Casts backend.
     @Binds
     @Singleton
-    abstract fun providesChatManager(chatManagerImpl: ChatManagerImpl): ChatManager
+    abstract fun providesChatManager(chatManagerImpl: DelegatingChatManager): ChatManager
+
+    @Binds
+    @Singleton
+    abstract fun providesClaudeManager(claudeManagerImpl: ClaudeManagerImpl): ClaudeManager
+
+    @Binds
+    @Singleton
+    abstract fun providesEpisodeSummaryManager(episodeSummaryManagerImpl: EpisodeSummaryManagerImpl): EpisodeSummaryManager
+
+    @Binds
+    @Singleton
+    abstract fun providesAdSkipManager(adSkipManagerImpl: AdSkipManagerImpl): AdSkipManager
 
     @Binds
     @Singleton

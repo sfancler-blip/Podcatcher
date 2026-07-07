@@ -10,6 +10,7 @@ import au.com.shiftyjelly.pocketcasts.payment.PaymentResultCode
 import au.com.shiftyjelly.pocketcasts.podcasts.view.episode.EpisodeFragmentViewModel.EpisodeContentTab.DESCRIPTION
 import au.com.shiftyjelly.pocketcasts.podcasts.view.episode.EpisodeFragmentViewModel.EpisodeContentTab.SUMMARY
 import au.com.shiftyjelly.pocketcasts.podcasts.view.episode.EpisodeFragmentViewModel.EpisodePageState
+import au.com.shiftyjelly.pocketcasts.repositories.ai.EpisodeSummaryManager
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadProgressCache
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadQueue
 import au.com.shiftyjelly.pocketcasts.repositories.playback.PlaybackManager
@@ -75,6 +76,9 @@ class EpisodeFragmentViewModelTest {
     @Mock
     lateinit var paymentClient: PaymentClient
 
+    @Mock
+    lateinit var episodeSummaryManager: EpisodeSummaryManager
+
     private val eventSink = TestEventSink()
 
     private lateinit var viewModel: EpisodeFragmentViewModel
@@ -101,6 +105,7 @@ class EpisodeFragmentViewModelTest {
             transcriptManager = transcriptManager,
             userManager = userManager,
             paymentClient = paymentClient,
+            episodeSummaryManager = episodeSummaryManager,
         )
     }
 
@@ -189,6 +194,16 @@ class EpisodeFragmentViewModelTest {
     @Test
     fun `summary tab can be selected when summary exists`() {
         val state = EpisodePageState(summary = "Episode summary")
+
+        val newState = state.selectContentTab(SUMMARY)
+
+        assertEquals(SUMMARY, newState.selectedContentTab)
+    }
+
+    // Podcatcher fork: the tab is selectable with no summary when Claude can generate one.
+    @Test
+    fun `summary tab can be selected when generation is possible`() {
+        val state = EpisodePageState(canGenerateSummary = true)
 
         val newState = state.selectContentTab(SUMMARY)
 

@@ -18,6 +18,7 @@ import au.com.shiftyjelly.pocketcasts.servers.addInterceptors
 import au.com.shiftyjelly.pocketcasts.servers.analytics.AnalyticsLiveService
 import au.com.shiftyjelly.pocketcasts.servers.analytics.EventProperties
 import au.com.shiftyjelly.pocketcasts.servers.analytics.EventPropertiesJsonAdapter
+import au.com.shiftyjelly.pocketcasts.servers.anthropic.AnthropicService
 import au.com.shiftyjelly.pocketcasts.servers.bumpstats.WpComService
 import au.com.shiftyjelly.pocketcasts.servers.cdn.StaticService
 import au.com.shiftyjelly.pocketcasts.servers.list.ListDownloadService
@@ -437,6 +438,37 @@ class NetworkModule {
     @Provides
     @Singleton
     fun provideAnalyticsLiveService(@AnalyticsLiveRetrofit retrofit: Retrofit): AnalyticsLiveService = retrofit.create()
+
+    // Dedicated client for the Anthropic API: no Pocket Casts interceptors (so the user's
+    // API key never reaches shared logging) and a long read timeout because non-streaming
+    // Claude responses can take minutes.
+    @Provides
+    @Singleton
+    @Anthropic
+    fun provideAnthropicClient(@Raw client: OkHttpClient): OkHttpClient {
+        return client.newBuilder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(300, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @AnthropicServiceRetrofit
+    @Singleton
+    fun provideAnthropicRetrofit(
+        builder: Retrofit.Builder,
+        @Anthropic httpClient: Lazy<OkHttpClient>,
+    ): Retrofit {
+        return builder
+            .baseUrl(AnthropicService.BASE_URL)
+            .callFactory { request -> httpClient.get().newCall(request) }
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAnthropicService(@AnthropicServiceRetrofit retrofit: Retrofit): AnthropicService = retrofit.create()
 }
 
 @Qualifier
@@ -526,3 +558,11 @@ annotation class AnalyticsLiveRetrofit
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class WebFeedsServiceRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class Anthropic
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AnthropicServiceRetrofit

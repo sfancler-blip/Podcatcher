@@ -2843,4 +2843,19 @@
     <string name="tv_create_account_title">Create your free account</string>
     <string name="tv_create_account_subtitle">Scan this code to get started on your phone, it only takes a minute.</string>
     <string name="tv_create_account_come_back">Once you\'ve created your account, come back and sign in</string>
+    <!-- Podcatcher fork: Claude AI features. Not translated (personal fork). -->
+    <string name="settings_claude_ai" translatable="false">Claude AI</string>
+    <string name="settings_claude_ai_summary" translatable="false">Summaries, chat, and ad skipping with your own Anthropic API key</string>
+    <string name="settings_claude_api_key" translatable="false">Anthropic API key</string>
+    <string name="settings_claude_api_key_hint" translatable="false">sk-ant-…</string>
+    <string name="settings_claude_api_key_summary" translatable="false">Stored encrypted on this device only. Create a key at console.anthropic.com.</string>
+    <string name="settings_claude_privacy_opt_in" translatable="false">Send transcripts to Anthropic</string>
+    <string name="settings_claude_privacy_opt_in_summary" translatable="false">Required for AI features. Episode transcripts are sent to the Anthropic API to generate summaries, answer chat questions, and detect ads. Nothing is sent until you turn this on.</string>
+    <string name="settings_claude_ad_skip" translatable="false">Skip ads automatically</string>
+    <string name="settings_claude_ad_skip_summary" translatable="false">Detects sponsor segments in episode transcripts and skips them during playback. You can opt out per podcast in its settings.</string>
+    <string name="player_ad_skipped" translatable="false">Skipped ad</string>
+    <string name="podcast_settings_ad_skip_opt_out" translatable="false">Don\'t skip ads in this podcast</string>
+    <string name="episode_summary_generate" translatable="false">Generate summary</string>
+    <string name="episode_summary_generating" translatable="false">Generating summary…</string>
+    <string name="episode_summary_error" translatable="false">Couldn\'t generate a summary. Check your Claude AI settings and that this episode has a transcript.</string>
 </resources>

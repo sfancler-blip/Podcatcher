@@ -249,6 +249,26 @@ class SettingsImpl @Inject constructor(
         sharedPrefs = sharedPreferences,
     )
 
+    override val anthropicApiKey = UserSetting.PrefFromString(
+        sharedPrefKey = "anthropicApiKey",
+        defaultValue = "",
+        sharedPrefs = privatePreferences,
+        fromString = { value -> value.takeIf(String::isNotEmpty)?.let(::decrypt).orEmpty() },
+        toString = { value -> if (value.isEmpty()) "" else encrypt(value) },
+    )
+
+    override val sendTranscriptsToAnthropic = UserSetting.BoolPref(
+        sharedPrefKey = "sendTranscriptsToAnthropic",
+        defaultValue = false,
+        sharedPrefs = sharedPreferences,
+    )
+
+    override val adSkipEnabled = UserSetting.BoolPref(
+        sharedPrefKey = "adSkipEnabled",
+        defaultValue = false,
+        sharedPrefs = sharedPreferences,
+    )
+
     override fun setSelectPodcastsSortType(sortType: PodcastsSortType) {
         sharedPreferences.edit().apply {
             putString(Settings.PREFERENCE_SELECT_PODCAST_LIBRARY_SORT, sortType.clientId.toString())

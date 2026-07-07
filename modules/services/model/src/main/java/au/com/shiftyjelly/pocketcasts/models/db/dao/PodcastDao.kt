@@ -406,6 +406,10 @@ abstract class PodcastDao {
     @Query("UPDATE podcasts SET show_notifications = :show, show_notifications_modified = :modified, sync_status = 0 WHERE uuid = :uuid")
     abstract suspend fun updateShowNotifications(uuid: String, show: Boolean, modified: Date = Date())
 
+    // Podcatcher fork: local-only setting, so sync_status and a modified timestamp don't apply.
+    @Query("UPDATE podcasts SET ad_skip_opt_out = :optOut WHERE uuid = :uuid")
+    abstract suspend fun updateAdSkipOptOut(uuid: String, optOut: Boolean)
+
     @Query("UPDATE podcasts SET subscribed = :subscribed WHERE uuid = :uuid")
     abstract fun updateSubscribedBlocking(subscribed: Boolean, uuid: String)
 

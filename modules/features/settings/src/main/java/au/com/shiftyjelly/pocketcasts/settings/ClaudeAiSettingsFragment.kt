@@ -1,0 +1,41 @@
+package au.com.shiftyjelly.pocketcasts.settings
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import au.com.shiftyjelly.pocketcasts.compose.AppThemeWithBackground
+import au.com.shiftyjelly.pocketcasts.compose.extensions.contentWithoutConsumedInsets
+import au.com.shiftyjelly.pocketcasts.preferences.Settings
+import au.com.shiftyjelly.pocketcasts.settings.viewmodel.ClaudeAiSettingsViewModel
+import au.com.shiftyjelly.pocketcasts.utils.extensions.pxToDp
+import au.com.shiftyjelly.pocketcasts.views.fragments.BaseFragment
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+
+// Podcatcher fork: settings screen for the Claude AI features.
+@AndroidEntryPoint
+class ClaudeAiSettingsFragment : BaseFragment() {
+    @Inject lateinit var setting: Settings
+    private val viewModel: ClaudeAiSettingsViewModel by viewModels()
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) = contentWithoutConsumedInsets {
+        val bottomInset = setting.bottomInset.collectAsStateWithLifecycle(initialValue = 0)
+        AppThemeWithBackground(theme.activeTheme) {
+            ClaudeAiSettingsPage(
+                viewModel = viewModel,
+                onBackPress = {
+                    activity?.onBackPressedDispatcher?.onBackPressed()
+                },
+                bottomInset = bottomInset.value.pxToDp(LocalContext.current).dp,
+            )
+        }
+    }
+}

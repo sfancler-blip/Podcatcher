@@ -12,12 +12,16 @@ web sessions and **no realistic in-session emulator**. Verification therefore la
 ```
 Auto-fix formatting: `./gradlew spotlessApply`.
 
-> **CI note:** the CI workflow runs `spotlessCheck` + `:modules:services:model:testDebugUnitTest`.
-> Feature-module unit tests (e.g. `:modules:features:player`) transitively rebuild
-> `modules/services/crashlogging`, whose KSP/Dagger-generated Java compile is flaky in headless
-> CI (an upstream quirk, unrelated to this fork). Run feature-module unit tests from a full
-> local/Android Studio build. Pure feature logic is kept in `model` where it is CI-covered
-> (e.g. the chapter-bookmark resolver lives in `model` and is tested there).
+> **CI note:** the CI workflow runs `spotlessCheck` + `:modules:services:model:testDebugUnitTest`
+> + `:modules:services:servers:testDebugUnitTest` (the servers module does not depend on the
+> local crashlogging module, so it is CI-safe). Feature-module and repositories unit tests
+> transitively rebuild `modules/services/crashlogging`, whose KSP/Dagger-generated Java compile
+> is flaky in headless CI (an upstream quirk, unrelated to this fork) — run those from a full
+> local/Android Studio build: `:modules:services:repositories:testDebugUnitTest` covers
+> `ClaudeManagerImpl`, `EpisodeSummaryManagerImpl`, `AdSkipManagerImpl`, and `ClaudeChatManager`;
+> `:modules:features:podcasts:testDebugUnitTest` covers the episode page summary state.
+> CI also commits freshly generated Room schema JSONs (e.g. `136.json`) back to the branch,
+> because their `identityHash` can only be produced by the Room compiler.
 
 ## Level 2 — Assemble (proves it builds; CI-preferred)
 ```bash
@@ -46,18 +50,27 @@ Instrumented tests (incl. Room migration tests) run only where a device exists:
 - Device: create a bookmark in a chaptered episode → bookmark row shows chapter label → tap seeks to chapter start.
 
 ### Feature 3 — Claude summaries
-- Unit: `SummaryManager` with a **mocked** Anthropic endpoint (no live key in tests); transcript-absent path handled.
-- Migration: `AppDatabaseTest` covers 135→136 (`EpisodeSummary`).
-- Device: opt in → request summary on an episode with a transcript → summary renders and is cached.
+- Unit: `EpisodeSummaryManagerImpl` with a mocked `ClaudeManager` (no live key in tests); cache-first
+  behavior; transcript-absent path throws. `AnthropicServiceTest` exercises the wire format against
+  MockWebServer (CI-covered).
+- Migration: `AppDatabaseTest.migrate135To136CreatesClaudeAiTablesAndAdSkipOptOut` covers the
+  auto migration (all new tables + the podcast column, device-only).
+- Device: enter key + opt in (Settings → Claude AI) → open an episode with a transcript →
+  Summary tab → Generate summary → summary renders and is cached.
 
 ### Feature 4 — Claude chat
-- Unit: transcript→messages mapping; backend selected by flag; upstream path still compiles.
-- Device: paywall bypassed → ask a question about an episode → answer returns via the user's key.
+- Unit: `ClaudeChatManagerTest` — transcript becomes system context, history normalization
+  (drop leading assistant welcome, merge consecutive same-role), no persistence on failure.
+- Device: with a key set, the chat banner answers via Claude (`DelegatingChatManager`); with no
+  key it falls back to the upstream backend.
 
 ### Feature 1 — Ad-skip
-- Unit: ad-range detection parsing; position-observer skip logic (mock `PlaybackManager`).
-- Migration: `AppDatabaseTest` covers 136→137 (`AdSegment`).
-- Device: episode with known ads → ad spans skipped → "undo" restores position → per-podcast opt-out respected.
+- Unit: `AdSkipManagerImplTest` — JSON span parsing (with prose/code fences), invalid-span
+  filtering, cache-first, "analyzed but no ads" persistence, unconfigured/no-transcript paths.
+- Migration: covered by the same 135→136 test above.
+- Device: enable ad skipping → play an episode with sponsor reads → spans skip with a toast →
+  seeking back into the ad plays it (each segment skips once per session) → per-podcast opt-out
+  respected.
 
 ## Definition of done (per feature)
 `spotlessCheck` ✅ · feature + model unit tests ✅ · migration test (if schema changed) ✅ ·

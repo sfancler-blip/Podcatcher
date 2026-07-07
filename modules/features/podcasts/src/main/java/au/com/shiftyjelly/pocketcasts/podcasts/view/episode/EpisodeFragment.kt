@@ -91,6 +91,7 @@ import au.com.shiftyjelly.pocketcasts.chat.ui.ChatBannerDimensions
 import au.com.shiftyjelly.pocketcasts.compose.AppTheme
 import au.com.shiftyjelly.pocketcasts.compose.buttons.ButtonTab
 import au.com.shiftyjelly.pocketcasts.compose.buttons.ButtonTabs
+import au.com.shiftyjelly.pocketcasts.compose.buttons.RowButton
 import au.com.shiftyjelly.pocketcasts.compose.components.AnimatedPlayPauseButton
 import au.com.shiftyjelly.pocketcasts.compose.extensions.setContentWithViewCompositionStrategy
 import au.com.shiftyjelly.pocketcasts.compose.summary.SummaryPaywall
@@ -795,7 +796,7 @@ class EpisodeFragment : BaseFragment() {
                             }
                         }
 
-                        val tabs = buildMergedTabs(transcript, summaryText, hasChapters)
+                        val tabs = buildMergedTabs(transcript, summaryText, hasChapters, pageState.canGenerateSummary)
 
                         val isSelectedTabAvailable = tabs.any { it.labelResId == selectedTab.labelResId }
                         LaunchedEffect(isSelectedTabAvailable) {
@@ -853,6 +854,36 @@ class EpisodeFragment : BaseFragment() {
                                     onClickSubscribe = ::onSummaryUpgradeClick,
                                     contentPadding = PaddingValues(16.dp),
                                     modifier = Modifier.height(screenHeight),
+                                )
+                            }
+                        }
+
+                        // Podcatcher fork: on-demand Claude summary generation.
+                        if (selectedTab == EpisodeContentTab.SUMMARY && summaryText == null) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                            ) {
+                                if (pageState.summaryError) {
+                                    Text(
+                                        text = stringResource(LR.string.episode_summary_error),
+                                        color = MaterialTheme.theme.colors.support05,
+                                        fontSize = 15.sp,
+                                        modifier = Modifier.padding(bottom = 12.dp),
+                                    )
+                                }
+                                RowButton(
+                                    text = stringResource(
+                                        if (pageState.isGeneratingSummary) {
+                                            LR.string.episode_summary_generating
+                                        } else {
+                                            LR.string.episode_summary_generate
+                                        },
+                                    ),
+                                    enabled = !pageState.isGeneratingSummary,
+                                    includePadding = false,
+                                    onClick = { viewModel.generateSummary() },
                                 )
                             }
                         }
@@ -1078,7 +1109,7 @@ class EpisodeFragment : BaseFragment() {
                 if (isSummaryEnabled) {
                     val chaptersState = chaptersViewModel.uiState.collectAsState().value
                     val hasChapters = chaptersState.chaptersCount > 0
-                    val tabs = buildMergedTabs(transcript, summaryText, hasChapters)
+                    val tabs = buildMergedTabs(transcript, summaryText, hasChapters, pageState.canGenerateSummary)
                     val askTheEpisodeVisible = FeatureFlag.isEnabled(Feature.EPISODE_CHAT) && transcript != null
 
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1175,6 +1206,7 @@ class EpisodeFragment : BaseFragment() {
         transcript: Transcript.Text?,
         summaryText: String?,
         hasChapters: Boolean,
+        canGenerateSummary: Boolean = false,
     ): List<ButtonTab> {
         val tabClickHandlers = mapOf<Int, () -> Unit>(
             LR.string.details to { viewModel.selectContentTab(EpisodeContentTab.DESCRIPTION) },
@@ -1198,7 +1230,8 @@ class EpisodeFragment : BaseFragment() {
         )
         return mergedTabLabelResIds(
             hasTranscript = transcript != null,
-            hasSummary = summaryText != null,
+            // Podcatcher fork: also show the tab when a Claude summary can be generated on demand.
+            hasSummary = summaryText != null || canGenerateSummary,
             hasChapters = hasChapters,
         ).map { labelResId ->
             ButtonTab(labelResId = labelResId, onClick = tabClickHandlers.getValue(labelResId))

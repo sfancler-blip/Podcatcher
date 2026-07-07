@@ -19,6 +19,7 @@ import au.com.shiftyjelly.pocketcasts.payment.SubscriptionOffer
 import au.com.shiftyjelly.pocketcasts.payment.SubscriptionTier
 import au.com.shiftyjelly.pocketcasts.payment.getOrNull
 import au.com.shiftyjelly.pocketcasts.preferences.Settings
+import au.com.shiftyjelly.pocketcasts.repositories.ai.EpisodeSummaryManager
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadProgressCache
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadQueue
 import au.com.shiftyjelly.pocketcasts.repositories.download.DownloadType
@@ -67,6 +68,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx2.asFlowable
+import timber.log.Timber
 
 @HiltViewModel
 class EpisodeFragmentViewModel @Inject constructor(
@@ -82,6 +84,7 @@ class EpisodeFragmentViewModel @Inject constructor(
     private val transcriptManager: TranscriptManager,
     private val userManager: UserManager,
     private val paymentClient: PaymentClient,
+    private val episodeSummaryManager: EpisodeSummaryManager,
 ) : ViewModel(),
     CoroutineScope {
     override val coroutineContext: CoroutineContext
@@ -114,6 +117,11 @@ class EpisodeFragmentViewModel @Inject constructor(
         val isPlusUser: Boolean = false,
         val isFreeTrialAvailable: Boolean = false,
         val summary: String? = null,
+        // Podcatcher fork: shows the Summary tab with a "Generate summary" button when no
+        // summary exists yet but Claude is configured.
+        val canGenerateSummary: Boolean = false,
+        val isGeneratingSummary: Boolean = false,
+        val summaryError: Boolean = false,
         val selectedContentTab: EpisodeContentTab = EpisodeContentTab.DESCRIPTION,
         val episodePublishedDate: Date? = null,
         val episodeDurationMs: Long? = null,
@@ -122,7 +130,7 @@ class EpisodeFragmentViewModel @Inject constructor(
             val contentTab = when (tab) {
                 EpisodeContentTab.DESCRIPTION -> EpisodeContentTab.DESCRIPTION
 
-                EpisodeContentTab.SUMMARY -> if (summary == null) {
+                EpisodeContentTab.SUMMARY -> if (summary == null && !canGenerateSummary) {
                     EpisodeContentTab.DESCRIPTION
                 } else {
                     EpisodeContentTab.SUMMARY
@@ -169,7 +177,10 @@ class EpisodeFragmentViewModel @Inject constructor(
         viewModelScope.launch {
             userManager.getSignInState().asFlow().collect { signInState ->
                 _pageState.update { state ->
-                    state.copy(isPlusUser = signInState.isSignedInAsPlusOrPatron)
+                    // Podcatcher fork: personal build — the Plus-gated AI surfaces (summary, chat)
+                    // are unlocked locally. Revert to `signInState.isSignedInAsPlusOrPatron` for
+                    // the upstream behavior.
+                    state.copy(isPlusUser = true)
                 }
             }
         }
@@ -316,14 +327,18 @@ class EpisodeFragmentViewModel @Inject constructor(
         val isChaptersEnabled = FeatureFlag.isEnabled(Feature.GENERATED_CHAPTERS)
         if ((isSummaryEnabled || isChaptersEnabled) && lastSummaryEpisodeUuid != episodeUuid) {
             _pageState.update { state ->
-                state.withSummary(null)
+                state.withSummary(null).copy(canGenerateSummary = false, summaryError = false)
             }
             val oldSummaryJob = loadSummaryJob
             loadSummaryJob = launch {
                 oldSummaryJob?.cancelAndJoin()
-                val result = transcriptManager.loadSummaryText(episodeUuid)
+                // Podcatcher fork: a cached Claude summary wins over the upstream meta-JSON one.
+                val result = episodeSummaryManager.cachedSummary(episodeUuid)
+                    ?: transcriptManager.loadSummaryText(episodeUuid)
                 _pageState.update { state ->
-                    state.withSummary(result)
+                    state.withSummary(result).copy(
+                        canGenerateSummary = result == null && episodeSummaryManager.canGenerate(),
+                    )
                 }
                 if (result != null || !isSummaryEnabled) {
                     lastSummaryEpisodeUuid = episodeUuid
@@ -332,6 +347,23 @@ class EpisodeFragmentViewModel @Inject constructor(
         } else if (!isSummaryEnabled) {
             _pageState.update { state ->
                 state.withSummary(null)
+            }
+        }
+    }
+
+    // Podcatcher fork: on-demand Claude summary generation from the Summary tab.
+    fun generateSummary() {
+        val episodeUuid = episode?.uuid ?: return
+        if (pageState.value.isGeneratingSummary) return
+        launch {
+            _pageState.update { it.copy(isGeneratingSummary = true, summaryError = false) }
+            try {
+                val summary = episodeSummaryManager.summaryFor(episodeUuid)
+                _pageState.update { it.withSummary(summary).copy(isGeneratingSummary = false) }
+                lastSummaryEpisodeUuid = episodeUuid
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to generate summary for episode $episodeUuid")
+                _pageState.update { it.copy(isGeneratingSummary = false, summaryError = true) }
             }
         }
     }

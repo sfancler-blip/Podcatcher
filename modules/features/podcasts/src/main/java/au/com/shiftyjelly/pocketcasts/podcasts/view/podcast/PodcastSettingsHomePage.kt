@@ -58,6 +58,7 @@ internal fun PodcastSettingsHomePage(
     uiState: PodcastSettingsViewModel.UiState,
     iconTint: Color,
     onChangeNotifications: (Boolean) -> Unit,
+    onChangeAdSkipOptOut: (Boolean) -> Unit,
     onChangeAutoDownload: (Boolean) -> Unit,
     onChangeAddToUpNext: (Boolean) -> Unit,
     onChangeUpNextPosition: () -> Unit,
@@ -263,6 +264,21 @@ internal fun PodcastSettingsHomePage(
                 tint = iconTint,
             )
         }
+        // Podcatcher fork: per-podcast opt-out from Claude ad skipping.
+        SettingRow(
+            primaryText = stringResource(LR.string.podcast_settings_ad_skip_opt_out),
+            icon = painterResource(IR.drawable.ic_ai),
+            iconTint = iconTint,
+            toggle = SettingRowToggle.Switch(
+                checked = podcast.adSkipOptOut,
+                enabled = true,
+            ),
+            modifier = Modifier.toggleable(
+                value = podcast.adSkipOptOut,
+                role = Role.Switch,
+                onValueChange = onChangeAdSkipOptOut,
+            ),
+        )
         if (uiState.playlists.isNotEmpty()) {
             SettingRow(
                 primaryText = stringResource(LR.string.smart_playlists),
@@ -343,6 +359,7 @@ private fun PodcastSettingsHomePagePreview(
                 isGlobalAutoDownloadEnabled = true,
             ),
             onChangeNotifications = {},
+            onChangeAdSkipOptOut = {},
             onChangeAutoDownload = {},
             onChangeAddToUpNext = {},
             onChangeUpNextPosition = {},

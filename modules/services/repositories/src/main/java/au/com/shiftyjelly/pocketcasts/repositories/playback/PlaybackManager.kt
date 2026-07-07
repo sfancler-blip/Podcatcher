@@ -41,6 +41,7 @@ import au.com.shiftyjelly.pocketcasts.preferences.model.AutoAddUpNextLimitBehavi
 import au.com.shiftyjelly.pocketcasts.preferences.model.AutoPlaySource
 import au.com.shiftyjelly.pocketcasts.preferences.model.PlayOverNotificationSetting
 import au.com.shiftyjelly.pocketcasts.repositories.R
+import au.com.shiftyjelly.pocketcasts.repositories.ai.AdSkipManager
 import au.com.shiftyjelly.pocketcasts.repositories.bookmark.BookmarkManager
 import au.com.shiftyjelly.pocketcasts.repositories.chromecast.CastManager
 import au.com.shiftyjelly.pocketcasts.repositories.di.NotificationPermissionChecker
@@ -93,6 +94,7 @@ import com.automattic.eventhorizon.PlayerEpisodeCompletedEvent
 import com.automattic.eventhorizon.Trackable
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.Relay
+import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Completable
@@ -167,6 +169,7 @@ open class PlaybackManager @Inject constructor(
     private val autoPlaySelector: AutoPlaySelector,
     private val browseTreeProvider: BrowseTreeProvider,
     private val alternateEnclosureManager: AlternateEnclosureManager,
+    private val adSkipManager: Lazy<AdSkipManager>,
 ) : FocusManager.FocusChangeListener,
     AudioNoisyManager.AudioBecomingNoisyListener,
     CoroutineScope {
@@ -1770,6 +1773,45 @@ open class PlaybackManager @Inject constructor(
         observeChaptersJob = chapterManager.observerChaptersForEpisode(episodeUuid)
             .onEach { onChaptersAvailable(it) }
             .launchIn(this)
+        setupAdSkipping(episodeUuid)
+    }
+
+    @Volatile
+    private var observeAdSkipping: Job? = null
+
+    // Podcatcher fork: auto-skips Claude-detected ad segments, mirroring the deselected-chapters
+    // skipping below. Each segment is skipped at most once per playback session, so seeking back
+    // into an ad deliberately plays it instead of fighting the user.
+    private fun setupAdSkipping(episodeUuid: String) {
+        observeAdSkipping?.cancel()
+        if (!adSkipManager.get().isAdSkippingEnabled()) {
+            return
+        }
+        observeAdSkipping = launch {
+            val segments = adSkipManager.get().adSegmentsFor(episodeUuid)
+                .filter { it.confidence >= AdSkipManager.CONFIDENCE_THRESHOLD }
+            if (segments.isEmpty()) {
+                return@launch
+            }
+            var lastSkippedEndMs = -1L
+            playbackStateRelay.asFlow().collect { playbackState ->
+                if (playbackState.episodeUuid != episodeUuid ||
+                    !playbackState.isPlaying ||
+                    playbackState.podcast?.adSkipOptOut == true ||
+                    !settings.adSkipEnabled.value
+                ) {
+                    return@collect
+                }
+                val positionMs = playbackState.positionMs.toLong()
+                val segment = segments.firstOrNull { positionMs >= it.startMs && positionMs < it.endMs }
+                if (segment != null && segment.endMs != lastSkippedEndMs) {
+                    lastSkippedEndMs = segment.endMs
+                    statsManager.addTimeSavedAutoSkipping(segment.endMs - positionMs)
+                    seekToTimeMs(segment.endMs.toInt())
+                    showToast(application.getString(LR.string.player_ad_skipped))
+                }
+            }
+        }
     }
 
     @Volatile

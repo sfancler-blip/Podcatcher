@@ -15,6 +15,11 @@ concurrency:
   group: podcatcher-ci-${{ github.ref }}
   cancel-in-progress: true
 
+# contents: write lets the checks job commit freshly generated Room schema JSONs back to the
+# branch (see that step's comment). Everything else only needs read.
+permissions:
+  contents: write
+
 jobs:
   checks:
     name: Spotless + unit tests
@@ -43,3 +48,55 @@ jobs:
       # fork's changes). Player-module tests should be run from a full local/Studio build.
       - name: Unit tests (model)
         run: ./gradlew :modules:services:model:testDebugUnitTest --stacktrace
+
+      # Covers the Anthropic Messages API client added by this fork. The servers module does
+      # not depend on modules/services/crashlogging, so it avoids the KSP flakiness that keeps
+      # feature-module and repositories tests out of CI.
+      - name: Unit tests (servers)
+        run: ./gradlew :modules:services:servers:testDebugUnitTest --stacktrace
+
+      # Room writes the current schema JSON (e.g. 136.json) during KSP compilation and its
+      # identityHash cannot be hand-authored. Web sessions have no Android SDK to generate it,
+      # so CI commits any newly generated schema back to the branch. Pushes made with
+      # GITHUB_TOKEN do not retrigger workflows, so this cannot loop.
+      - name: Commit generated Room schemas
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain modules/services/model/schemas)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add modules/services/model/schemas
+            git commit -m "Add generated Room schema JSON (CI)"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+  assemble:
+    name: Assemble debugProd APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # debugProd points at production servers and needs no secrets; the checked-in
+      # debug keystore signs it. The uploaded APK is the fork's "deploy" artifact —
+      # download it from the run page and sideload to a device.
+      - name: Assemble debugProd
+        run: ./gradlew :app:assembleDebugProd --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: podcatcher-debugProd-apk
+          path: app/build/outputs/apk/debugProd/*.apk
+          retention-days: 30
+          if-no-files-found: error

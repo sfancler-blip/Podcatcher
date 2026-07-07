@@ -116,6 +116,15 @@ class PodcastSettingsViewModel @AssistedInject constructor(
         }
     }
 
+    // Podcatcher fork: per-podcast opt-out from Claude ad skipping. No analytics event because
+    // the EventHorizon schema is external to this fork.
+    fun changeAdSkipOptOut(optOut: Boolean) {
+        viewModelScope.launch {
+            podcastFlow.update { it?.copy(adSkipOptOut = optOut) }
+            podcastManager.updateAdSkipOptOut(podcastUuid, optOut)
+        }
+    }
+
     fun changeAutoDownload(enable: Boolean) {
         val podcast = podcastFlow.value ?: return
         viewModelScope.launch(Dispatchers.IO) {

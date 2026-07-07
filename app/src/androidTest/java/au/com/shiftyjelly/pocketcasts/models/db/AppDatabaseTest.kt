@@ -27,6 +27,7 @@ class AppDatabaseTest {
         private const val TEST_DB = "migration-test"
         private const val MIGRATION_DB = "migration-test-132-133"
         private const val MIGRATION_DB_133_134 = "migration-test-133-134"
+        private const val MIGRATION_DB_135_136 = "migration-test-135-136"
     }
 
     @Rule @JvmField
@@ -179,6 +180,56 @@ class AppDatabaseTest {
 
         db.execSQL("INSERT INTO episode_alternate_enclosures (episode_uuid, position, type, is_default, sources) VALUES ('episode-1', 0, 'application/x-mpegURL', 1, '[]')")
         assertEquals(1, countRows(db, "episode_alternate_enclosures"))
+    }
+
+    // Podcatcher fork: version 136 is an auto migration, so runMigrationsAndValidate picks it up
+    // without an explicit Migration object and validates the generated schema.
+    @Test
+    fun migrate135To136CreatesClaudeAiTablesAndAdSkipOptOut() {
+        migrationTestHelper.createDatabase(MIGRATION_DB_135_136, 135).close()
+
+        val db = migrationTestHelper.runMigrationsAndValidate(MIGRATION_DB_135_136, 136, true)
+
+        val summaryColumns = columnNames(db, "episode_summaries")
+        assertEquals(
+            "All summary columns should exist",
+            true,
+            summaryColumns.containsAll(listOf("episode_uuid", "podcast_uuid", "summary", "model", "created_at")),
+        )
+
+        val segmentColumns = columnNames(db, "episode_ad_segments")
+        assertEquals(
+            "All ad segment columns should exist",
+            true,
+            segmentColumns.containsAll(listOf("_id", "episode_uuid", "start_ms", "end_ms", "confidence")),
+        )
+
+        val analysisColumns = columnNames(db, "episode_ad_analysis")
+        assertEquals(
+            "All ad analysis columns should exist",
+            true,
+            analysisColumns.containsAll(listOf("episode_uuid", "model", "created_at")),
+        )
+
+        assertEquals("podcasts should gain ad_skip_opt_out", true, columnNames(db, "podcasts").contains("ad_skip_opt_out"))
+
+        db.execSQL("INSERT INTO episode_summaries (episode_uuid, summary, model, created_at) VALUES ('episode-1', 'A summary', 'claude-sonnet-5', 0)")
+        assertEquals(1, countRows(db, "episode_summaries"))
+        db.execSQL("INSERT INTO episode_ad_segments (episode_uuid, start_ms, end_ms, confidence) VALUES ('episode-1', 1000, 31000, 0.9)")
+        assertEquals(1, countRows(db, "episode_ad_segments"))
+        db.execSQL("INSERT INTO episode_ad_analysis (episode_uuid, model, created_at) VALUES ('episode-1', 'claude-sonnet-5', 0)")
+        assertEquals(1, countRows(db, "episode_ad_analysis"))
+    }
+
+    private fun columnNames(db: SupportSQLiteDatabase, tableName: String): List<String> {
+        val columns = mutableListOf<String>()
+        db.query("PRAGMA table_info($tableName)").use { cursor ->
+            val nameIndex = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                columns.add(cursor.getString(nameIndex))
+            }
+        }
+        return columns
     }
 
     private fun countWhere(db: SupportSQLiteDatabase?, tableName: String, where: String): Int {

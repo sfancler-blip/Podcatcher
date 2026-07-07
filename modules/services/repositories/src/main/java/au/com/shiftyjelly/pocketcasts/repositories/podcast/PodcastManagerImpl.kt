@@ -570,6 +570,10 @@ class PodcastManagerImpl @Inject constructor(
         podcastDao.updateShowNotifications(podcastUuid, show)
     }
 
+    override suspend fun updateAdSkipOptOut(podcastUuid: String, optOut: Boolean) {
+        podcastDao.updateAdSkipOptOut(podcastUuid, optOut)
+    }
+
     override suspend fun updateStartFromInSec(podcast: Podcast, autoStartFrom: Int) {
         podcastDao.updateStartFrom(autoStartFrom, podcast.uuid)
     }

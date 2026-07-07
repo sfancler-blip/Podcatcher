@@ -5,11 +5,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import au.com.shiftyjelly.pocketcasts.models.converter.AlternateEnclosureSourcesConverter
 import au.com.shiftyjelly.pocketcasts.models.db.AppDatabase
+import au.com.shiftyjelly.pocketcasts.models.db.dao.AdSegmentDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.AlternateEnclosureDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.ChapterDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EndOfYearDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeChatDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeDao
+import au.com.shiftyjelly.pocketcasts.models.db.dao.EpisodeSummaryDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.ExternalDataDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.PlaybackStatsDao
 import au.com.shiftyjelly.pocketcasts.models.db.dao.PlaylistDao
@@ -93,6 +95,12 @@ object ModelModule {
 
     @Provides
     fun provideAlternateEnclosureDao(database: AppDatabase): AlternateEnclosureDao = database.alternateEnclosureDao()
+
+    @Provides
+    fun provideEpisodeSummaryDao(database: AppDatabase): EpisodeSummaryDao = database.episodeSummaryDao()
+
+    @Provides
+    fun provideAdSegmentDao(database: AppDatabase): AdSegmentDao = database.adSegmentDao()
 }
 
 @Qualifier

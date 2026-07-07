@@ -126,6 +126,9 @@ fun SettingsFragmentPage(
                 RestoreFromLocalHistoryRow(onClick = { openFragment(HistoryFragment()) })
             }
             item {
+                ClaudeAiRow(onClick = { openFragment(ClaudeAiSettingsFragment()) })
+            }
+            item {
                 AdvancedRow(onClick = { openFragment(AdvancedSettingsFragment()) })
             }
             item {
@@ -295,6 +298,16 @@ private fun RestoreFromLocalHistoryRow(onClick: () -> Unit) {
     SettingRow(
         primaryText = stringResource(LR.string.restore_from_local_history),
         icon = painterResource(IR.drawable.ic_history),
+        modifier = Modifier.rowModifier(onClick),
+    )
+}
+
+// Podcatcher fork: settings entry for the Claude AI features.
+@Composable
+private fun ClaudeAiRow(onClick: () -> Unit) {
+    SettingRow(
+        primaryText = stringResource(LR.string.settings_claude_ai),
+        icon = painterResource(IR.drawable.ic_ai),
         modifier = Modifier.rowModifier(onClick),
     )
 }

@@ -88,6 +88,7 @@ class PodcastSettingsFragment :
                 getArtworkUuidsFlow = viewModel::getArtworkUuidsFlow,
                 refreshArtworkUuids = viewModel::refreshArtworkUuids,
                 onChangeNotifications = viewModel::changeNotifications,
+                onChangeAdSkipOptOut = viewModel::changeAdSkipOptOut,
                 onChangeAutoDownload = viewModel::changeAutoDownload,
                 onChangeAddToUpNext = viewModel::changeAddToUpNext,
                 onChangeUpNextPosition = ::showUpNextPositionDialog,

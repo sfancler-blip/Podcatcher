@@ -86,14 +86,41 @@ Recommended: **Feature 2 (quick win) → foundation → Feature 3 → Feature 4 
 | Milestone | Content | Gate |
 |-----------|---------|------|
 | M0 ✅ | Import upstream (full history) onto `claude/podcasting-app-customize-bosduh` | Done |
-| M1 | Fork attribution + planning docs + CI/SessionStart setup | This commit |
-| M2 | Baseline verified: `spotlessCheck`, model unit tests, `assembleDebugProd` (CI) | Green APK |
-| M2.5 | **Feature 2** — chapter bookmarks | Tests + gates green |
-| M4 | **Foundation** — Anthropic service + `ClaudeManager` + in-app key + privacy opt-in | Mocked-endpoint test |
-| M5 | **Feature 3** — summaries (+ migration 135→136) | Renders; gates green |
-| M6 | **Feature 4** — chat re-point + un-gate | Answers via user key |
-| M7 | **Feature 1** — ad-skip (+ migration 136→137) | Skips with override |
-| M8 | Merge & tag; periodic `git fetch upstream && git merge` | Usable on device |
+| M1 ✅ | Fork attribution + planning docs + CI/SessionStart setup | Done |
+| M2 ✅ | Baseline verified: `spotlessCheck`, model unit tests, `assembleDebugProd` (CI) | Green APK |
+| M2.5 ✅ | **Feature 2** — chapter bookmarks | Done |
+| M4 ✅ | **Foundation** — Anthropic service + `ClaudeManager` + in-app key + privacy opt-in | MockWebServer + manager unit tests |
+| M5 ✅ | **Feature 3** — summaries (+ auto migration 135→136) | On-demand generate button in the Summary tab |
+| M6 ✅ | **Feature 4** — chat re-point + un-gate | `DelegatingChatManager` picks Claude when a key is set |
+| M7 ✅ | **Feature 1** — ad-skip (same 135→136 migration) | Position observer in `PlaybackManager` + opt-outs |
+| M8 | Merge & tag; periodic `git fetch upstream && git merge`; behavioral test on device | Usable on device |
+
+### Implementation notes (what shipped, where it deviates from the sketch above)
+- **One schema bump, not two.** All new tables (`episode_summaries`, `episode_ad_segments`,
+  `episode_ad_analysis`) and the `podcasts.ad_skip_opt_out` column land in a single additive
+  `AutoMigration(135 → 136)` — Room derives it, so there is no hand-written SQL to drift.
+  The generated `136.json` schema is committed by CI (web sessions have no Android SDK to
+  produce its `identityHash`).
+- **Summary UI was already upstream.** Pocket Casts ships a Plus-gated Summary tab on the
+  episode screen backed by `TranscriptManager.loadSummaryText`. Feature 3 plugs in underneath:
+  `EpisodeSummaryManager` serves a cached Claude summary first, upstream meta-JSON second, and
+  the tab gains a "Generate summary" button when Claude is configured and nothing is cached.
+- **Chat backend selection is per-call.** `ChatManager` is bound to `DelegatingChatManager`,
+  which routes to `ClaudeChatManager` whenever the key + opt-in are set and falls back to the
+  upstream backend otherwise. Both persist to the same Room tables. Claude requires
+  user-first/alternating messages, so history is normalized (leading assistant welcome dropped,
+  consecutive same-role messages merged).
+- **Paywall bypass is one line** — `EpisodeFragmentViewModel` pins `isPlusUser = true` (marked
+  revertable). `Feature.EPISODE_CHAT` / `Feature.AI_SUMMARIES` default on in debug builds; use
+  the beta-features dev toggles if a Firebase remote value ever turns them off.
+- **Ad-skip "undo" simplification:** each detected segment auto-skips at most once per playback
+  session, so seeking back into an ad plays it instead of fighting the user. Skips show a toast
+  and add to the time-saved stat. Detection runs once per episode and is cached (including the
+  "no ads found" result) in `episode_ad_analysis`.
+- **Settings UI:** Settings → Claude AI holds the encrypted API key field (private prefs,
+  `PBEWithMD5AndDES` like `cachedMembership`), the transcript opt-in, and the ad-skip toggle.
+  The per-podcast opt-out row lives in each podcast's settings.
+- **No new analytics events** — the EventHorizon schema is generated outside this repo.
 
 ## Risks & constraints
 1. **Privacy** — transcript content is sent to Anthropic for features 1/3/4; explicit opt-in required.
