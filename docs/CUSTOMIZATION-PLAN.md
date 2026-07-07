@@ -93,7 +93,7 @@ Recommended: **Feature 2 (quick win) → foundation → Feature 3 → Feature 4 
 | M5 ✅ | **Feature 3** — summaries (+ auto migration 135→136) | On-demand generate button in the Summary tab |
 | M6 ✅ | **Feature 4** — chat re-point + un-gate | `DelegatingChatManager` picks Claude when a key is set |
 | M7 ✅ | **Feature 1** — ad-skip (same 135→136 migration) | Position observer in `PlaybackManager` + opt-outs |
-| M8 | Merge & tag; periodic `git fetch upstream && git merge`; behavioral test on device | Usable on device |
+| M8 🟢 | CI green (tests + APK artifact), tagged `claude-features-v1`; behavioral test on device remains | Sideload the CI APK |
 
 ### Implementation notes (what shipped, where it deviates from the sketch above)
 - **One schema bump, not two.** All new tables (`episode_summaries`, `episode_ad_segments`,

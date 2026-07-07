@@ -44,23 +44,17 @@ jobs:
       - name: Check formatting
         run: ./gradlew spotlessCheck --stacktrace
 
-      # Runs the model module's unit tests, which cover the Feature 2 chapter-bookmark
-      # resolver (Chapters.chapterTitleForBookmark). The player module is intentionally not
-      # built here: its unit-test task transitively rebuilds modules/services/crashlogging,
-      # whose KSP/Dagger-generated Java compile is flaky in headless CI (unrelated to this
-      # fork's changes). Player-module tests should be run from a full local/Studio build.
+      # Covers the Feature 2 chapter-bookmark resolver (Chapters.chapterTitleForBookmark).
       - name: Unit tests (model)
         run: ./gradlew :modules:services:model:testDebugUnitTest --stacktrace
 
-      # Covers the Anthropic Messages API client added by this fork. The servers module does
-      # not depend on modules/services/crashlogging, so it avoids the KSP flakiness that keeps
-      # feature-module and repositories tests out of CI.
+      # Covers the Anthropic Messages API client added by this fork.
       - name: Unit tests (servers)
         run: ./gradlew :modules:services:servers:testDebugUnitTest --stacktrace
 
       # Covers ClaudeManagerImpl, EpisodeSummaryManagerImpl, AdSkipManagerImpl, and
       # ClaudeChatManager. Previously kept out of CI because the crashlogging module failed to
-      # compile — that was the JDK 17/21 mismatch fixed above.
+      # compile — that was the JDK 17/21 mismatch fixed above, not real flakiness.
       - name: Unit tests (repositories)
         run: ./gradlew :modules:services:repositories:testDebugUnitTest --stacktrace
 

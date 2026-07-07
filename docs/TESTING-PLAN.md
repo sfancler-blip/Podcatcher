@@ -12,14 +12,13 @@ web sessions and **no realistic in-session emulator**. Verification therefore la
 ```
 Auto-fix formatting: `./gradlew spotlessApply`.
 
-> **CI note:** the CI workflow runs `spotlessCheck` + `:modules:services:model:testDebugUnitTest`
-> + `:modules:services:servers:testDebugUnitTest` (the servers module does not depend on the
-> local crashlogging module, so it is CI-safe). Feature-module and repositories unit tests
-> transitively rebuild `modules/services/crashlogging`, whose KSP/Dagger-generated Java compile
-> is flaky in headless CI (an upstream quirk, unrelated to this fork) — run those from a full
-> local/Android Studio build: `:modules:services:repositories:testDebugUnitTest` covers
-> `ClaudeManagerImpl`, `EpisodeSummaryManagerImpl`, `AdSkipManagerImpl`, and `ClaudeChatManager`;
-> `:modules:features:podcasts:testDebugUnitTest` covers the episode page summary state.
+> **CI note:** the CI workflow runs `spotlessCheck` plus the `model`, `servers`, and
+> `repositories` module unit tests, and assembles + uploads the debugProd APK. The
+> "crashlogging is flaky in headless CI" belief from earlier sessions turned out to be a JDK
+> mismatch: the project pins JDK 21 (`.java-version`) and building with JDK 17 fails on
+> dependencies compiled for 21 ("bad class file … cannot access CrashLogging"). CI now uses
+> Temurin 21. `:modules:features:podcasts:testDebugUnitTest` (episode page summary state) still
+> runs from a local/Studio build only, to keep CI time down.
 > CI also commits freshly generated Room schema JSONs (e.g. `136.json`) back to the branch,
 > because their `identityHash` can only be produced by the Room compiler.
 
